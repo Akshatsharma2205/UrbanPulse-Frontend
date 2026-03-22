@@ -14,6 +14,8 @@ const POLICY_LABELS = {
   "custom": "Custom Policy"
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 const tourSteps = [
   { selector: '.city-section', content: 'Select your city and define its conditions' },
   { selector: '.policy-section', content: 'Choose or create a policy' },
@@ -160,7 +162,7 @@ function UrbanPulseDashboard() {
     const finalPolicyA = policy === 'custom' ? customPolicy : policy;
     const finalPolicyB = policyB === 'custom' ? customPolicyB : policyB;
 
-    const url = isCompareMode ? 'http://localhost:8080/api/compare' : 'http://localhost:8080/api/simulate';
+    const url = isCompareMode ? `${API_BASE_URL}/api/compare` : `${API_BASE_URL}/api/simulate`;
     const body = isCompareMode 
       ? { city, population, trafficLevel, pollutionLevel, timeHorizon, budget, priority, riskLevel, policyA: finalPolicyA, policyB: finalPolicyB }
       : { city, population, trafficLevel, pollutionLevel, timeHorizon, budget, priority, riskLevel, policy: finalPolicyA };
@@ -190,7 +192,7 @@ function UrbanPulseDashboard() {
     const finalPolicyA = policy === 'custom' ? customPolicy : policy;
 
     try {
-      const response = await fetch('http://localhost:8080/api/debate', {
+      const response = await fetch(`${API_BASE_URL}/api/debate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ city, population, trafficLevel, pollutionLevel, timeHorizon, budget, priority, riskLevel, policy: finalPolicyA }),
@@ -212,7 +214,7 @@ function UrbanPulseDashboard() {
         ? { config: { city, population, timeHorizon, budget, priority, riskLevel, policyA: policy, policyB }, result }
         : { config: { city, population, timeHorizon, budget, priority, riskLevel, policy }, result };
         
-      const response = await fetch('http://localhost:8080/api/save', {
+      const response = await fetch(`${API_BASE_URL}/api/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -269,7 +271,7 @@ function UrbanPulseDashboard() {
       if (!formattedId.startsWith('UP-')) throw new Error('Invalid Matrix ID Format (Expected UP-XXXXX)');
       
       setLoadId(formattedId);
-      const response = await fetch(`http://localhost:8080/api/scenario/${formattedId}`);
+      const response = await fetch(`${API_BASE_URL}/api/scenario/${formattedId}`);
       if (!response.ok) throw new Error('Scenario Network Failure');
       const data = await response.json();
       
