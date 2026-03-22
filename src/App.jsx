@@ -332,10 +332,10 @@ function UrbanPulseDashboard() {
         }
       `}</style>
       
-      <div className="h-screen w-full bg-[#0A0A0B] text-[#E4E4E7] font-sans selection:bg-[#3b4a6b]/30 p-4 lg:p-6 flex flex-col lg:flex-row gap-6 overflow-hidden animate-fade-in">
+      <div className="min-h-screen lg:h-screen w-full bg-[#0A0A0B] text-[#E4E4E7] font-sans selection:bg-[#3b4a6b]/30 p-4 lg:p-6 flex flex-col lg:flex-row gap-6 overflow-y-auto lg:overflow-hidden animate-fade-in">
         
         {/* PANEL 1: CONFIGURATION */}
-        <section className="w-full lg:w-[340px] shrink-0 bg-[#131316] border border-[#222226] rounded-xl flex flex-col h-full overflow-y-auto shadow-2xl relative">
+        <section className="w-full lg:w-[340px] shrink-0 bg-[#131316] border border-[#222226] rounded-xl flex flex-col lg:h-full lg:overflow-y-auto shadow-2xl relative">
           <div className="p-8 flex flex-col h-full">
             
             <header className="mb-10 flex flex-col gap-6 relative z-20">
@@ -552,7 +552,7 @@ function UrbanPulseDashboard() {
         </section>
 
         {/* PANEL 2: MACRO ANALYTICS */}
-        <section className="impact-section flex-1 bg-[#131316] border border-[#222226] rounded-xl flex flex-col h-full overflow-y-auto shadow-2xl">
+        <section className="impact-section flex-1 bg-[#131316] border border-[#222226] rounded-xl flex flex-col lg:h-full lg:overflow-y-auto shadow-2xl">
           <div className="p-8 lg:p-12 h-full flex flex-col">
             
             <header className="mb-12 border-b border-[#222226] pb-6 flex justify-between items-end">
@@ -719,7 +719,7 @@ function UrbanPulseDashboard() {
         </section>
 
         {/* PANEL 3: MICRO FEEDBACK */}
-        <section className="w-full lg:w-[420px] shrink-0 bg-[#131316] border border-[#222226] rounded-xl flex flex-col h-full overflow-shadow-2xl shadow-2xl">
+        <section className="w-full lg:w-[420px] shrink-0 bg-[#131316] border border-[#222226] rounded-xl flex flex-col lg:h-full lg:overflow-y-auto shadow-2xl">
           <div className="p-8 h-full flex flex-col">
             
             <header className="mb-8 border-b border-[#222226] pb-6">
