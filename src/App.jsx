@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { TourProvider, useTour } from '@reactour/tour';
 import CityIcon from './CityIcon';
 import LivingBlueprint from './LivingBlueprint';
 import LandingPage from './LandingPage';
@@ -24,79 +23,8 @@ const POLICY_LABELS = {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
-const tourSteps = [
-  { selector: '.city-section', content: 'Select your city and define its conditions' },
-  { selector: '.policy-section', content: 'Choose or create a policy' },
-  { selector: '.simulate-button', content: 'Run the simulation' },
-  { selector: '.impact-section', content: 'View impact results' },
-  { selector: '.comparison-section', content: 'Compare policies' },
-  { selector: '.debate-section', content: 'See stakeholder debate' },
-  { selector: '.timeline-section', content: 'Explore future changes' }
-];
-
-const CustomNavigation = ({ currentStep, steps, setIsOpen, setCurrentStep }) => (
-  <div className="flex justify-between items-center w-full mt-5 border-t border-[#2A2A30] pt-4">
-    <button 
-      onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-      disabled={currentStep === 0}
-      className="text-[10px] font-mono uppercase tracking-widest text-[#8A8A93] hover:text-[#E4E4E7] disabled:opacity-30 transition-colors px-2 py-1"
-    >
-      &larr; Prev
-    </button>
-    <div className="text-[10px] font-mono tracking-widest text-[#52525B]">
-      <span className="text-[#E4E4E7]">{currentStep + 1}</span> / {steps.length}
-    </div>
-    <button 
-      onClick={() => {
-        if (currentStep === steps.length - 1) {
-          setIsOpen(false);
-        } else {
-          setCurrentStep(Math.min(steps.length - 1, currentStep + 1));
-        }
-      }}
-      className="text-[10px] font-mono uppercase tracking-widest text-[#E4E4E7] bg-[#3b4a6b] hover:bg-[#465578] hover:shadow-[0_0_10px_rgba(79,70,229,0.5)] px-4 py-2 rounded transition-all"
-    >
-      {currentStep === steps.length - 1 ? 'Finish \u2713' : 'Next \u2192'}
-    </button>
-  </div>
-);
-
 export default function App() {
-  return (
-    <TourProvider 
-      steps={tourSteps}
-      padding={{ mask: 14 }}
-      components={{
-        Navigation: CustomNavigation,
-        Badge: () => null
-      }}
-      styles={{
-        popover: (base) => ({
-          ...base,
-          backgroundColor: '#18181B',
-          color: '#E4E4E7',
-          borderRadius: '8px',
-          border: '1px solid #2A2A30',
-          boxShadow: '0 20px 40px -10px rgba(0,0,0,0.8)',
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-          fontSize: '12px',
-          padding: '24px 20px 20px 20px'
-        }),
-        maskArea: (base) => ({ ...base, rx: 8 }),
-        highlightedArea: (base) => ({
-          ...base,
-          display: 'block',
-          stroke: '#4f46e5',
-          strokeWidth: 3,
-          strokeDasharray: '5 5',
-          rx: 8
-        }),
-        close: (base) => ({ ...base, right: 16, top: 16, color: '#71717A' })
-      }}
-    >
-      <UrbanPulseDashboard />
-    </TourProvider>
-  );
+  return <UrbanPulseDashboard />;
 }
 
 function UrbanPulseDashboard() {
@@ -160,18 +88,6 @@ function UrbanPulseDashboard() {
     if (debateResult && !debateLoading) setActiveTab('stakeholders');
   }, [debateResult, debateLoading]);
 
-  const { setIsOpen } = useTour();
-
-  useEffect(() => {
-    if (currentView === 'dashboard' && !localStorage.getItem('UP_TOUR_COMPLETED')) {
-      setTimeout(() => {
-        setIsOpen(true);
-        localStorage.setItem('UP_TOUR_COMPLETED', 'true');
-      }, 800);
-    }
-  }, [currentView, setIsOpen]);
-
-  const startTour = () => setIsOpen(true);
 
   const handleSimulate = async () => {
     setLoading(true);
