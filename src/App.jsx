@@ -4,6 +4,7 @@ import CityIcon from './CityIcon';
 import LivingBlueprint from './LivingBlueprint';
 import LandingPage from './LandingPage';
 import SimulationWizard from './SimulationWizard';
+import MasterPlanMode from './MasterPlanMode';
 import {
   ImpactCard, ArchitecturalRadar, CompareRadar,
   AnimatedTimeline, TypewriterSummary,
@@ -132,6 +133,7 @@ function UrbanPulseDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showHeatMatrix, setShowHeatMatrix] = useState(false);
+  const [showMasterPlan, setShowMasterPlan] = useState(false);
 
   const [loadId, setLoadId] = useState('');
   
@@ -410,19 +412,27 @@ function UrbanPulseDashboard() {
                    )}
                 </div>
               </div>
-               <div className="text-right flex flex-col items-end gap-3">
-                 <div>
-                   <p className="font-mono text-[10px] text-[#52525B] tracking-widest uppercase">Target Locale</p>
-                   <p className="font-medium text-[15px]">{city}</p>
+                 <div className="text-right flex flex-col items-end gap-3">
+                   <div>
+                     <p className="font-mono text-[10px] text-[#52525B] tracking-widest uppercase">Target Locale</p>
+                     <p className="font-medium text-[15px]">{city}</p>
+                   </div>
+                   {/* Policy Matrix button */}
+                   <button
+                     onClick={() => setShowHeatMatrix(true)}
+                     className="font-mono text-[10px] tracking-widest text-amber-400 border border-amber-500/40 hover:bg-amber-500/15 px-3 py-1.5 rounded-full uppercase transition-all flex items-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)] hover:shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                   >
+                     <span className="text-[13px]">🗺️</span> Policy Matrix
+                   </button>
+                   {/* Master Plan Mode — Preview */}
+                   <button
+                     onClick={() => setShowMasterPlan(true)}
+                     className="font-mono text-[10px] tracking-widest text-violet-400 border border-violet-500/40 hover:bg-violet-500/15 px-3 py-1.5 rounded-full uppercase transition-all flex items-center gap-2 shadow-[0_0_10px_rgba(139,92,246,0.15)] hover:shadow-[0_0_24px_rgba(139,92,246,0.4)]"
+                   >
+                     <span className="text-[13px]">🗺️</span> Master Plan
+                     <span className="text-[7px] bg-violet-500 text-white px-1.5 py-0.5 rounded tracking-widest">PREVIEW</span>
+                   </button>
                  </div>
-                 {/* Policy Matrix button — always visible */}
-                 <button
-                   onClick={() => setShowHeatMatrix(true)}
-                   className="font-mono text-[10px] tracking-widest text-amber-400 border border-amber-500/40 hover:bg-amber-500/15 px-3 py-1.5 rounded-full uppercase transition-all flex items-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.1)] hover:shadow-[0_0_20px_rgba(245,158,11,0.3)]"
-                 >
-                   <span className="text-[13px]">🗺️</span> Policy Matrix
-                 </button>
-               </div>
             </header>
 
             {error && (
@@ -644,6 +654,11 @@ function UrbanPulseDashboard() {
         ))}
       </div>
       
+      {/* Master Plan Mode — full screen overlay */}
+      {showMasterPlan && (
+        <MasterPlanMode onClose={() => setShowMasterPlan(false)} />
+      )}
+
       {/* Heat Matrix Modal */}
       {showHeatMatrix && (
         <PolicyHeatMatrix
