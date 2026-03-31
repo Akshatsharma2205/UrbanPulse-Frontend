@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Fragment } from 'react';
 import {
   LineChart, Line, AreaChart, Area,
   BarChart, Bar,
@@ -21,67 +21,9 @@ const POLICY_PALETTE = [
   { key: 'build_highway',  icon: '🛣️', label: 'Highway',          cost: 150, color: '#f97316' },
 ];
 
-const DEMO_PLAN = [
-  { year: 2025, policy: 'add_metro' },
-  { year: 2027, policy: 'add_park' },
-  { year: 2029, policy: 'remove_parking' },
-  { year: 2032, policy: 'subsidize_ev' },
-];
+/* No demo constants — using live API data */
 
-const DEMO_PHASES = [
-  {
-    year: 2025, icon: '🚇', label: 'Metro Line', color: '#6366f1',
-    duration: 2200,
-    before: { traffic: 35, economy: 45, ecology: 50, sentiment: 55 },
-    after:  { traffic: 62, economy: 53, ecology: 47, sentiment: 72 },
-    insight: 'Metro construction reduces private vehicle dependency. Temporary ecology dip from construction reverses within 18 months as transit ridership grows.',
-  },
-  {
-    year: 2027, icon: '🌳', label: 'Green Park', color: '#10b981',
-    duration: 1800,
-    before: { traffic: 62, economy: 53, ecology: 47, sentiment: 72 },
-    after:  { traffic: 65, economy: 57, ecology: 79, sentiment: 86 },
-    insight: 'Green corridors along metro routes compound the transit investment. Ecology recovers dramatically; businesses near stations benefit from increased foot traffic.',
-  },
-  {
-    year: 2029, icon: '🚫', label: 'Remove Parking', color: '#f59e0b',
-    duration: 2000,
-    before: { traffic: 65, economy: 57, ecology: 79, sentiment: 86 },
-    after:  { traffic: 78, economy: 52, ecology: 82, sentiment: 80 },
-    insight: 'With metro established, parking removal is politically viable. Traffic improves significantly. Temporary economic resistance fades as pedestrian retail expands.',
-  },
-  {
-    year: 2032, icon: '⚡', label: 'Subsidize EV', color: '#818cf8',
-    duration: 1600,
-    before: { traffic: 78, economy: 52, ecology: 82, sentiment: 80 },
-    after:  { traffic: 81, economy: 65, ecology: 88, sentiment: 83 },
-    insight: 'EV subsidies leverage the existing green infrastructure. Economy rebounds as clean-mobility businesses emerge. The city begins attracting climate-tech investment.',
-  },
-];
-
-const TRAJECTORY_DATA = [
-  { year: '2024', traffic: 35, economy: 45, ecology: 50, sentiment: 55 },
-  { year: '2025', traffic: 62, economy: 53, ecology: 47, sentiment: 72 },
-  { year: '2026', traffic: 63, economy: 55, ecology: 50, sentiment: 74 },
-  { year: '2027', traffic: 65, economy: 57, ecology: 79, sentiment: 86 },
-  { year: '2028', traffic: 66, economy: 58, ecology: 80, sentiment: 85 },
-  { year: '2029', traffic: 78, economy: 52, ecology: 82, sentiment: 80 },
-  { year: '2030', traffic: 79, economy: 54, ecology: 83, sentiment: 81 },
-  { year: '2031', traffic: 80, economy: 59, ecology: 85, sentiment: 82 },
-  { year: '2032', traffic: 81, economy: 65, ecology: 88, sentiment: 83 },
-  { year: '2033', traffic: 82, economy: 67, ecology: 89, sentiment: 84 },
-  { year: '2034', traffic: 83, economy: 70, ecology: 90, sentiment: 85 },
-  { year: '2035', traffic: 84, economy: 72, ecology: 91, sentiment: 86 },
-];
-
-const COMPOUND_INSIGHT = `The Metro Line in 2025 created the transit infrastructure that made the 2029 Parking Removal politically 
-feasible — without an established alternative, citizens would have rejected it outright. The Green Park 
-investment in 2027 amplified the transit effect by reactivating street-level activity near stations, boosting 
-sentiment to a level that unlocked funding for the EV programme in 2032. Each policy built on the last. 
-The sequencing of these four decisions amplified their individual effects by an estimated 41% compared to 
-implementing any one policy in isolation.`;
-
-const POLICY_YEARS = Array.from({ length: 11 }, (_, i) => 2025 + i);
+const POLICY_YEARS = Array.from({ length: 11 }, (_, i) => 2026 + i);
 
 /* ─────────────────────────────────────────────────────────────────────────
    HELPERS
@@ -420,11 +362,11 @@ function StrategyCanvas({ budget, placements, setPlacements, onNext }) {
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 10 }}>
-        <button onClick={() => setPlacements(DEMO_PLAN)} style={{
+        <button onClick={() => setPlacements([])} style={{
           flex: 1, padding: '12px 0', borderRadius: 10, cursor: 'pointer',
           border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)',
           color: '#a1a1aa', fontFamily: 'ui-monospace,monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase',
-        }}>Load Demo Plan</button>
+        }}>Clear Plan</button>
         <button onClick={onNext} disabled={placements.length === 0} style={{
           flex: 2, padding: '12px 0', borderRadius: 10, cursor: placements.length ? 'pointer' : 'not-allowed',
           border: 'none', background: placements.length ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : '#1c1c20',
@@ -446,12 +388,13 @@ function AnimatedDelta({ value }) {
   return <span style={{ color: value >= 0 ? '#10b981' : '#ef4444' }}>{sign}{display}</span>;
 }
 
-function ExecutionStep({ onComplete }) {
-  const [stage, setStage] = useState('baseline');
+function ExecutionStep({ placements, city, budget, planName, onComplete }) {
+  const [stage, setStage] = useState('fetching'); // fetching -> baseline -> phase -> done
   const [phaseIdx, setPhaseIdx] = useState(-1);
   const [phaseDone, setPhaseDone] = useState([]);
   const [progress, setProgress] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const [data, setData] = useState(null);
 
   // Elapsed time counter
   useEffect(() => {
@@ -459,15 +402,36 @@ function ExecutionStep({ onComplete }) {
     return () => clearInterval(id);
   }, []);
 
+  // Fetch from live API
   useEffect(() => {
-    const t1 = setTimeout(() => { setPhaseIdx(0); setStage('phase'); }, 1100);
-    return () => clearTimeout(t1);
-  }, []);
+    const payload = {
+      city, budget, planName,
+      phases: placements.map(p => {
+        const pol = POLICY_PALETTE.find(x => x.key === p.policy);
+        return { year: String(p.year), policy: p.policy, label: pol.label, icon: pol.icon };
+      })
+    };
+    const API_URL = import.meta.env.VITE_MASTERPLAN_API_URL || 'https://urbanpulse-backend-2.onrender.com';
+    fetch(`${API_URL}/api/masterplan/simulate`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(res => res.json()).then(resData => {
+      setData(resData);
+      setStage('baseline');
+    }).catch(err => console.error('Simulation Failed:', err));
+  }, [city, budget, planName, placements]);
 
   useEffect(() => {
-    if (phaseIdx < 0 || phaseIdx >= DEMO_PHASES.length) return;
+    if (stage === 'baseline') {
+      const t1 = setTimeout(() => { setPhaseIdx(0); setStage('phase'); }, 1100);
+      return () => clearTimeout(t1);
+    }
+  }, [stage]);
+
+  useEffect(() => {
+    if (!data || phaseIdx < 0 || phaseIdx >= data.phases.length) return;
     setProgress(0);
-    const duration = DEMO_PHASES[phaseIdx].duration;
+    const duration = 1200; // Fixed animation speed
     const steps = 40;
     const interval = duration / steps;
     let count = 0;
@@ -478,15 +442,22 @@ function ExecutionStep({ onComplete }) {
         clearInterval(id);
         setPhaseDone(prev => [...prev, phaseIdx]);
         const next = phaseIdx + 1;
-        if (next < DEMO_PHASES.length) {
+        if (next < data.phases.length) {
           setTimeout(() => setPhaseIdx(next), 400);
         } else {
-          setTimeout(() => { setStage('done'); onComplete(); }, 1200);
+          setTimeout(() => { setStage('done'); onComplete(data); }, 1200);
         }
       }
     }, interval);
     return () => clearInterval(id);
-  }, [phaseIdx]); // eslint-disable-line
+  }, [phaseIdx, data, onComplete]);
+
+  const displayPhases = data ? data.phases : placements.map(p => ({
+    year: p.year, policy: p.policy,
+    label: POLICY_PALETTE.find(x => x.key === p.policy)?.label,
+    icon: POLICY_PALETTE.find(x => x.key === p.policy)?.icon,
+    color: POLICY_PALETTE.find(x => x.key === p.policy)?.color || '#52525b'
+  }));
 
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: '48px 24px', position: 'relative' }}>
@@ -530,14 +501,17 @@ function ExecutionStep({ onComplete }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'relative', zIndex: 1 }}>
         {/* Baseline */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderRadius: 10, background: '#0f1117', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <span style={{ fontSize: 14 }}>✅</span>
-          <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 10, color: '#10b981', letterSpacing: '0.08em' }}>Analyzing baseline city conditions...</span>
+          <span style={{ fontSize: 14 }}>{stage === 'fetching' ? '🔮' : '✅'}</span>
+          <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 10, color: stage === 'fetching' ? '#6366f1' : '#10b981', letterSpacing: '0.08em', animation: stage === 'fetching' ? 'borderPulse 1.5s infinite' : 'none' }}>
+            {stage === 'fetching' ? 'AI Engine Synthesizing 10-Year Trajectory...' : 'Baseline city conditions acquired.'}
+          </span>
         </div>
 
         {/* Phases */}
-        {DEMO_PHASES.map((phase, idx) => {
+        {displayPhases.map((phase, idx) => {
           const isDone = phaseDone.includes(idx);
           const isRunning = phaseIdx === idx && !isDone;
+          const isPendingRender = stage === 'fetching' || (!isDone && !isRunning);
 
           return (
             <div key={idx} style={{
@@ -546,6 +520,7 @@ function ExecutionStep({ onComplete }) {
               border: `1px solid ${isDone ? phase.color + '33' : isRunning ? phase.color + '55' : 'rgba(255,255,255,0.06)'}`,
               transition: 'all 0.4s ease',
               position: 'relative', overflow: 'hidden',
+              opacity: stage === 'fetching' ? 0.6 : 1,
             }}>
               {/* Scanning light when running */}
               {isRunning && (
@@ -559,7 +534,7 @@ function ExecutionStep({ onComplete }) {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: isDone ? 12 : 0 }}>
                 <span style={{ fontSize: 16 }}>
-                  {isDone ? '✅' : isRunning ? '⚙️' : '⏳'}
+                  {stage === 'fetching' ? '⏳' : isDone ? '✅' : isRunning ? '⚙️' : '⏳'}
                 </span>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -665,10 +640,12 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
   );
 };
 
-function BeforeAfterScore() {
-  const before = useCountUp(38, 1200);
-  const after  = useCountUp(82, 1800);
-  const delta  = useCountUp(44, 2000);
+function BeforeAfterScore({ data }) {
+  const before = useCountUp(data.cityHealthBefore, 1200);
+  const after  = useCountUp(data.cityHealthAfter, 1800);
+  const diff   = data.cityHealthAfter - data.cityHealthBefore;
+  const delta  = useCountUp(Math.abs(diff), 2000);
+  const sign   = diff >= 0 ? '+' : '-';
 
   const particles = [14, 28, 46, 62, 78]; // % x positions
 
@@ -698,9 +675,10 @@ function BeforeAfterScore() {
           <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 22, color: '#3f3f46' }}>→</div>
           <div style={{
             fontFamily: 'ui-monospace,monospace', fontSize: 20, color: '#10b981', fontWeight: 300,
-            textShadow: '0 0 20px rgba(16,185,129,0.8)',
+            textShadow: diff >= 0 ? '0 0 20px rgba(16,185,129,0.8)' : '0 0 20px rgba(239,68,68,0.8)',
             animation: 'mpFadeIn 0.5s 1.5s both',
-          }}>+{delta}</div>
+            color: diff >= 0 ? '#10b981' : '#ef4444',
+          }}>{sign}{delta}</div>
         </div>
 
         {/* After — with floating particles */}
@@ -757,7 +735,7 @@ const AREA_METRICS = [
   { key: 'sentiment', color: '#818cf8', name: 'Sentiment' },
 ];
 
-function FilledAreaChart() {
+function FilledAreaChart({ trajectory }) {
   return (
     <div style={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '22px 18px 12px', position: 'relative' }}>
       <div style={{ position: 'absolute', inset: 0, borderRadius: 14, pointerEvents: 'none', zIndex: 0,
@@ -774,7 +752,7 @@ function FilledAreaChart() {
         ))}
       </defs>
       <ResponsiveContainer width="100%" height={220}>
-        <AreaChart data={TRAJECTORY_DATA} margin={{ top: 8, right: 16, bottom: 0, left: -10 }}>
+        <AreaChart data={trajectory} margin={{ top: 8, right: 16, bottom: 0, left: -10 }}>
           <defs>
             {AREA_METRICS.map(m => (
               <linearGradient key={m.key} id={`agrad-${m.key}`} x1="0" y1="0" x2="0" y2="1">
@@ -809,13 +787,6 @@ function FilledAreaChart() {
 }
 
 /* ─ ② Donut gauge arcs (pure SVG) ─────────────────────────────────────────────────── */
-const FINAL_SCORES = [
-  { label: 'Traffic',   value: 84, color: '#6366f1' },
-  { label: 'Economy',   value: 72, color: '#f59e0b' },
-  { label: 'Ecology',   value: 91, color: '#10b981' },
-  { label: 'Sentiment', value: 86, color: '#818cf8' },
-];
-
 function ArcGauge({ value, color, label, size = 90, delay = 0 }) {
   const r = 36;
   const circ = 2 * Math.PI * r;
@@ -858,14 +829,22 @@ function ArcGauge({ value, color, label, size = 90, delay = 0 }) {
   );
 }
 
-function DonutGauges() {
+function DonutGauges({ trajectory }) {
+  const final = trajectory[trajectory.length - 1];
+  const scores = [
+    { label: 'Traffic',   value: final.traffic, color: '#6366f1' },
+    { label: 'Economy',   value: final.economy, color: '#f59e0b' },
+    { label: 'Ecology',   value: final.ecology, color: '#10b981' },
+    { label: 'Sentiment', value: final.sentiment, color: '#818cf8' },
+  ];
+
   return (
     <div style={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '22px 18px' }}>
       <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#52525b', marginBottom: 22 }}>
-        ②b 2035 End-State Scores
+        ②b {final.year} End-State Scores
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: 16 }}>
-        {FINAL_SCORES.map((g, i) => (
+        {scores.map((g, i) => (
           <ArcGauge key={g.label} value={g.value} color={g.color} label={g.label} delay={i * 180} />
         ))}
       </div>
@@ -874,14 +853,16 @@ function DonutGauges() {
 }
 
 /* ─ ③ Radar chart ────────────────────────────────────────────────────────────────── */
-const RADAR_DATA = [
-  { metric: 'Traffic',   baseline: 35, final: 84 },
-  { metric: 'Economy',   baseline: 45, final: 72 },
-  { metric: 'Ecology',   baseline: 50, final: 91 },
-  { metric: 'Sentiment', baseline: 55, final: 86 },
-];
+function BeforeAfterRadar({ trajectory }) {
+  const baseline = trajectory[0];
+  const final = trajectory[trajectory.length - 1];
+  const radarData = [
+    { metric: 'Traffic',   baseline: baseline.traffic, final: final.traffic },
+    { metric: 'Economy',   baseline: baseline.economy, final: final.economy },
+    { metric: 'Ecology',   baseline: baseline.ecology, final: final.ecology },
+    { metric: 'Sentiment', baseline: baseline.sentiment, final: final.sentiment },
+  ];
 
-function BeforeAfterRadar() {
   return (
     <div style={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '22px 18px' }}>
       <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#52525b', marginBottom: 4 }}>
@@ -890,25 +871,25 @@ function BeforeAfterRadar() {
       <div style={{ display: 'flex', gap: 18, justifyContent: 'center', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{ width: 16, height: 1, background: '#ef4444', borderRadius: 1, borderTop: '1px dashed #ef4444' }} />
-          <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, color: '#52525b' }}>2024 Baseline</span>
+          <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, color: '#52525b' }}>{baseline.year} Baseline</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{ width: 16, height: 2, background: '#6366f1', borderRadius: 1 }} />
-          <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, color: '#52525b' }}>2035 Final</span>
+          <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, color: '#52525b' }}>{final.year} Final</span>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={260}>
-        <RadarChart data={RADAR_DATA} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+        <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
           <PolarGrid stroke="rgba(255,255,255,0.06)" />
           <PolarAngleAxis dataKey="metric"
             tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'ui-monospace,monospace' }}
           />
           <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-          <Radar name="2024 Baseline" dataKey="baseline"
+          <Radar name="Baseline" dataKey="baseline"
             stroke="#ef4444" strokeWidth={1.5} strokeDasharray="4 3"
             fill="#ef4444" fillOpacity={0.06}
           />
-          <Radar name="2035 Final" dataKey="final"
+          <Radar name="Final" dataKey="final"
             stroke="#6366f1" strokeWidth={2}
             fill="#6366f1" fillOpacity={0.15}
             style={{ filter: 'drop-shadow(0 0 8px rgba(99,102,241,0.4))' }}
@@ -919,41 +900,22 @@ function BeforeAfterRadar() {
   );
 }
 
-/* ─ ④ Phase bar chart ─────────────────────────────────────────────────────────────── */
-const BAR_DATA = DEMO_PHASES.map(p => ({
-  phase: `${p.icon} ${p.year}`,
-  Traffic:   p.after.traffic   - p.before.traffic,
-  Economy:   p.after.economy   - p.before.economy,
-  Ecology:   p.after.ecology   - p.before.ecology,
-  Sentiment: p.after.sentiment - p.before.sentiment,
-}));
+function PhaseBarChart({ phases }) {
+  const barData = phases.map(p => ({
+    phase: `${p.icon} ${p.year}`,
+    Traffic:   p.after.traffic   - p.before.traffic,
+    Economy:   p.after.economy   - p.before.economy,
+    Ecology:   p.after.ecology   - p.before.ecology,
+    Sentiment: p.after.sentiment - p.before.sentiment,
+  }));
 
-const CUSTOM_BAR_TOOLTIP = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 14px' }}>
-      <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, color: '#52525b', marginBottom: 6, letterSpacing: '0.12em' }}>{label}</div>
-      {payload.map(p => (
-        <div key={p.name} style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 3 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 2, background: p.fill, display: 'inline-block' }} />
-          <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 9, color: '#a1a1aa', width: 60 }}>{p.name}</span>
-          <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 11, color: p.value >= 0 ? '#10b981' : '#ef4444' }}>
-            {p.value >= 0 ? '+' : ''}{p.value}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-function PhaseBarChart() {
   return (
     <div style={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '22px 18px 12px' }}>
       <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#52525b', marginBottom: 18 }}>
         ④ Phase Impact Comparison — Delta per Metric
       </div>
       <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={BAR_DATA} margin={{ top: 4, right: 16, bottom: 0, left: -10 }} barGap={2} barCategoryGap="28%">
+        <BarChart data={barData} margin={{ top: 4, right: 16, bottom: 0, left: -10 }} barGap={2} barCategoryGap="28%">
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
           <XAxis dataKey="phase" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'ui-monospace,monospace' }} />
           <YAxis tick={{ fill: '#52525b', fontSize: 8, fontFamily: 'ui-monospace,monospace' }} />
@@ -976,7 +938,25 @@ function PhaseBarChart() {
   );
 }
 
-function ResultsDashboard({ planName, city, onReport }) {
+const CUSTOM_BAR_TOOLTIP = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 14px' }}>
+      <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, color: '#52525b', marginBottom: 6, letterSpacing: '0.12em' }}>{label}</div>
+      {payload.map(p => (
+        <div key={p.name} style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 3 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: p.fill, display: 'inline-block' }} />
+          <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 9, color: '#a1a1aa', width: 60 }}>{p.name}</span>
+          <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 11, color: p.value >= 0 ? '#10b981' : '#ef4444' }}>
+            {p.value >= 0 ? '+' : ''}{p.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+function ResultsDashboard({ planName, city, data, onReport }) {
   return (
     <div style={{ padding: '28px 28px 60px', display: 'flex', flexDirection: 'column', gap: 28, overflowY: 'auto', height: '100%' }}>
       <style>{`
@@ -992,7 +972,7 @@ function ResultsDashboard({ planName, city, onReport }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div>
             <h2 style={{ fontSize: 22, fontWeight: 200, color: '#e4e4e7', margin: '0 0 4px' }}>{planName}</h2>
-            <p style={{ fontSize: 12, color: '#52525b', margin: 0 }}>{city} · 2025–2035 · 4 phases</p>
+            <p style={{ fontSize: 12, color: '#52525b', margin: 0 }}>{city} · {data.trajectory[0].year}–{data.trajectory[data.trajectory.length - 1].year} · {data.phases.length} phases</p>
           </div>
           {/* Generate Report — pulsing button */}
           <button onClick={onReport} style={{
@@ -1018,7 +998,7 @@ function ResultsDashboard({ planName, city, onReport }) {
         }} />
         <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#52525b', marginBottom: 18 }}>① City Trajectory — All Metrics</div>
         <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={TRAJECTORY_DATA} margin={{ top: 8, right: 16, bottom: 0, left: -10 }}>
+          <LineChart data={data.trajectory} margin={{ top: 8, right: 16, bottom: 0, left: -10 }}>
             <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.05)" />
             <XAxis dataKey="year" tick={{ fill: '#52525b', fontSize: 8, fontFamily: 'ui-monospace,monospace' }} />
             <YAxis domain={[0, 100]} tick={{ fill: '#52525b', fontSize: 8, fontFamily: 'ui-monospace,monospace' }} />
@@ -1045,29 +1025,29 @@ function ResultsDashboard({ planName, city, onReport }) {
 
       {/* ①b Filled Area trajectory — right after the line chart */}
       <div style={{ animation: 'mpFadeIn 0.5s 0.15s ease both' }}>
-        <FilledAreaChart />
+        <FilledAreaChart trajectory={data.trajectory} />
       </div>
 
       {/* ③ Before / After City Health */}
       <div style={{ animation: 'mpFadeIn 0.5s 0.2s ease both' }}>
-        <BeforeAfterScore />
+        <BeforeAfterScore data={data} />
       </div>
 
       {/* ②b Donut gauges — 2035 end-state */}
       <div style={{ animation: 'mpFadeIn 0.5s 0.25s ease both' }}>
-        <DonutGauges />
+        <DonutGauges trajectory={data.trajectory} />
       </div>
 
       {/* ③ Radar — before vs after shape */}
       <div style={{ animation: 'mpFadeIn 0.5s 0.3s ease both' }}>
-        <BeforeAfterRadar />
+        <BeforeAfterRadar trajectory={data.trajectory} />
       </div>
 
       {/* ② Phase Breakdown */}
       <div style={{ animation: 'mpFadeIn 0.5s 0.35s ease both' }}>
         <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#52525b', marginBottom: 14 }}>② Phase Breakdown</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
-          {DEMO_PHASES.map((phase, i) => (
+          {data.phases.map((phase, i) => (
             <div key={i} style={{
               background: `linear-gradient(135deg, ${phase.color}0a, #0f1117)`,
               border: `1px solid ${phase.color}28`,
@@ -1105,7 +1085,7 @@ function ResultsDashboard({ planName, city, onReport }) {
 
       {/* ④ Phase bar chart */}
       <div style={{ animation: 'mpFadeIn 0.5s 0.4s ease both' }}>
-        <PhaseBarChart />
+        <PhaseBarChart phases={data.phases} />
       </div>
 
       {/* ④ Compound Effect — animated gradient border + typewriter */}
@@ -1120,7 +1100,7 @@ function ResultsDashboard({ planName, city, onReport }) {
           <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6366f1', fontWeight: 500 }}>④ Compound Effect · AI Insight</div>
         </div>
         <p style={{ fontSize: 13, color: '#a1a1aa', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-line' }}>
-          <CompoundTypewriter text={COMPOUND_INSIGHT} />
+          <CompoundTypewriter text={data.compoundInsight} />
         </p>
       </div>
     </div>
@@ -1131,7 +1111,7 @@ function ResultsDashboard({ planName, city, onReport }) {
    REPORT MODAL
 ───────────────────────────────────────────────────────────────────────── */
 const PLAN_ID = 'PLAN-' + Math.random().toString(36).slice(2,7).toUpperCase();
-function ReportModal({ planName, city, onClose }) {
+function ReportModal({ planName, city, data, onClose }) {
   const planIdRef = useRef(PLAN_ID);
   const [copied, setCopied] = useState(false);
   const [printHovered, setPrintHovered] = useState(false);
@@ -1159,7 +1139,7 @@ function ReportModal({ planName, city, onClose }) {
           {/* Plan name block */}
           <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 16 }}>
             <h2 style={{ fontSize: 20, fontWeight: 200, color: '#e4e4e7', margin: '0 0 4px' }}>{planName}</h2>
-            <p style={{ fontSize: 12, color: '#52525b', margin: '0 0 14px' }}>{city} · 2025–2035 · 4 phases</p>
+            <p style={{ fontSize: 12, color: '#52525b', margin: '0 0 14px' }}>{city} · {data.trajectory[0].year}–{data.trajectory[data.trajectory.length - 1].year} · {data.phases.length} phases</p>
 
             {/* Hero PLAN ID */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1190,9 +1170,9 @@ function ReportModal({ planName, city, onClose }) {
           <div>
             <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#52525b', marginBottom: 12 }}>Policy Timeline</div>
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-              {DEMO_PHASES.map((p, i) => (
-                <>
-                  <div key={p.year} style={{
+              {data.phases.map((p, i) => (
+                <Fragment key={p.year}>
+                  <div style={{
                     display: 'flex', alignItems: 'center', gap: 5,
                     background: `${p.color}15`, border: `1px solid ${p.color}30`,
                     borderRadius: 100, padding: '4px 10px',
@@ -1200,10 +1180,10 @@ function ReportModal({ planName, city, onClose }) {
                     <span style={{ fontSize: 12 }}>{p.icon}</span>
                     <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, color: p.color }}>{p.year}</span>
                   </div>
-                  {i < DEMO_PHASES.length - 1 && (
+                  {i < data.phases.length - 1 && (
                     <div key={`line-${i}`} style={{ width: 20, height: 1, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
                   )}
-                </>
+                </Fragment>
               ))}
             </div>
           </div>
@@ -1212,7 +1192,7 @@ function ReportModal({ planName, city, onClose }) {
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '18px 16px', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 7, color: '#52525b', marginBottom: 4, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Before</div>
-              <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 28, color: '#ef4444', textShadow: '0 0 16px rgba(239,68,68,0.4)' }}>38</div>
+              <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 28, color: '#ef4444', textShadow: '0 0 16px rgba(239,68,68,0.4)' }}>{data.cityHealthBefore}</div>
             </div>
             {/* SVG arrow */}
             <svg width={40} height={16} viewBox="0 0 40 16" fill="none">
@@ -1220,15 +1200,17 @@ function ReportModal({ planName, city, onClose }) {
             </svg>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 7, color: '#52525b', marginBottom: 4, letterSpacing: '0.14em', textTransform: 'uppercase' }}>After</div>
-              <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 28, color: '#10b981', textShadow: '0 0 16px rgba(16,185,129,0.5)' }}>82</div>
+              <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 28, color: '#10b981', textShadow: '0 0 16px rgba(16,185,129,0.5)' }}>{data.cityHealthAfter}</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 7, color: '#52525b', marginBottom: 4, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Delta</div>
-              <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 28, color: '#6366f1', textShadow: '0 0 16px rgba(99,102,241,0.5)' }}>+44</div>
+              <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 28, color: data.cityHealthAfter >= data.cityHealthBefore ? '#6366f1' : '#ef4444', textShadow: '0 0 16px rgba(99,102,241,0.5)' }}>
+                {data.cityHealthAfter >= data.cityHealthBefore ? '+' : ''}{data.cityHealthAfter - data.cityHealthBefore}
+              </div>
             </div>
           </div>
 
-          <p style={{ fontSize: 12, color: '#71717a', lineHeight: 1.7, margin: 0, fontStyle: 'italic' }}>{COMPOUND_INSIGHT}</p>
+          <p style={{ fontSize: 12, color: '#71717a', lineHeight: 1.7, margin: 0, fontStyle: 'italic' }}>{data.compoundInsight}</p>
         </div>
 
         {/* Print button with bouncing printer emoji */}
@@ -1259,11 +1241,12 @@ const STEPS = ['Setup', 'Canvas', 'Execute', 'Results'];
 
 export default function MasterPlanMode({ onClose }) {
   const [step, setStep]           = useState(0);
-  const [planName, setPlanName]   = useState('Mumbai 2035 Transformation Plan');
+  const [planName, setPlanName]   = useState('Mumbai 2036 Transformation Plan');
   const [city, setCity]           = useState('Mumbai');
   const [budget, setBudget]       = useState('High');
-  const [placements, setPlacements] = useState(DEMO_PLAN);
+  const [placements, setPlacements] = useState([]);
   const [showReport, setShowReport] = useState(false);
+  const [simulationData, setSimulationData] = useState(null);
 
   // Close on Escape
   useEffect(() => {
@@ -1353,12 +1336,12 @@ export default function MasterPlanMode({ onClose }) {
         )}
         {step === 2 && (
           <div style={{ height: '100%', overflowY: 'auto', animation: 'mpFadeIn 0.35s ease' }}>
-            <ExecutionStep onComplete={() => setStep(3)} />
+            <ExecutionStep placements={placements} city={city} budget={budget} planName={planName} onComplete={(data) => { setSimulationData(data); setStep(3); }} />
           </div>
         )}
-        {step === 3 && (
+        {step === 3 && simulationData && (
           <div style={{ height: '100%', animation: 'mpFadeIn 0.35s ease' }}>
-            <ResultsDashboard planName={planName} city={city} onReport={() => setShowReport(true)} />
+            <ResultsDashboard planName={planName} city={city} data={simulationData} onReport={() => setShowReport(true)} />
           </div>
         )}
       </div>
@@ -1383,7 +1366,7 @@ export default function MasterPlanMode({ onClose }) {
         </div>
       </div>
 
-      {showReport && <ReportModal planName={planName} city={city} onClose={() => setShowReport(false)} />}
+      {showReport && <ReportModal planName={planName} city={city} data={simulationData} onClose={() => setShowReport(false)} />}
     </div>
   );
 }
