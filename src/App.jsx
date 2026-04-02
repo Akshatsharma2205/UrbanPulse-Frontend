@@ -4,6 +4,7 @@ import LivingBlueprint from './LivingBlueprint';
 import LandingPage from './LandingPage';
 import SimulationWizard from './SimulationWizard';
 import MasterPlanMode from './MasterPlanMode';
+import CityDnaDatabase from './CityDnaDatabase';
 import {
   ImpactCard, ArchitecturalRadar, CompareRadar,
   AnimatedTimeline, TypewriterSummary,
@@ -21,7 +22,7 @@ const POLICY_LABELS = {
   "custom": "Custom Policy"
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://urbanpulse-backend-production-72ce.up.railway.app';
 
 export default function App() {
   return <UrbanPulseDashboard />;
@@ -29,6 +30,7 @@ export default function App() {
 
 function UrbanPulseDashboard() {
   const [currentView, setCurrentView] = useState('landing'); // Controls landing vs dashboard
+  const [showDnaDatabase, setShowDnaDatabase] = useState(false);
 
   // Advanced Parameters
   const [city, setCity] = useState('Mumbai');
@@ -248,7 +250,14 @@ function UrbanPulseDashboard() {
   };
 
   if (currentView === 'landing') {
-     return <LandingPage onLaunch={() => setCurrentView('dashboard')} />;
+     return (
+       <>
+         <LandingPage onLaunch={() => setCurrentView('dashboard')} onOpenDna={() => setShowDnaDatabase(true)} />
+         {showDnaDatabase && (
+           <CityDnaDatabase onClose={() => setShowDnaDatabase(false)} />
+         )}
+       </>
+     );
   }
 
   const titleA = policy === 'custom' ? (customPolicy || "Custom Policy") : POLICY_LABELS[policy];
@@ -572,7 +581,12 @@ function UrbanPulseDashboard() {
       
       {/* Master Plan Mode — full screen overlay */}
       {showMasterPlan && (
-        <MasterPlanMode onClose={() => setShowMasterPlan(false)} />
+        <MasterPlanMode onClose={() => setShowMasterPlan(false)} onOpenDna={() => { setShowMasterPlan(false); setShowDnaDatabase(true); }} />
+      )}
+
+      {/* City DNA Database — full screen overlay */}
+      {showDnaDatabase && (
+        <CityDnaDatabase onClose={() => setShowDnaDatabase(false)} />
       )}
 
       {/* Heat Matrix Modal */}

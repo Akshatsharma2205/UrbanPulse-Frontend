@@ -67,7 +67,7 @@ function MetricDelta({ label, before, after, color }) {
 /* ─────────────────────────────────────────────────────────────────────────
    STEP 1 — PLAN SETUP
 ───────────────────────────────────────────────────────────────────────── */
-function PlanSetupStep({ planName, setPlanName, city, setCity, budget, setBudget, onNext }) {
+function PlanSetupStep({ planName, setPlanName, city, setCity, budget, setBudget, cityDna, isFetchingDna, onNext, onOpenDna }) {
   const total = BUDGET_TOTAL[budget];
   const pct = budget === 'Low' ? 33 : budget === 'Medium' ? 66 : 100;
   const animatedTotal = useCountUp(total, 500);
@@ -123,6 +123,29 @@ function PlanSetupStep({ planName, setPlanName, city, setCity, budget, setBudget
                 outline: 'none', fontFamily: 'ui-monospace,monospace', boxSizing: 'border-box',
               }}
             />
+            {isFetchingDna && (
+              <div style={{ fontSize: 10, color: '#818cf8', marginTop: 8, fontFamily: 'ui-monospace,monospace', animation: 'mpBlink 1.5s infinite' }}>
+                Analyzing city profile...
+              </div>
+            )}
+            {!isFetchingDna && cityDna && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 10, color: '#10b981', fontFamily: 'ui-monospace,monospace', lineHeight: 1.4, marginBottom: 8 }}>
+                  " {cityDna.cityVerdict} "
+                </div>
+                {onOpenDna && (
+                  <button onClick={onOpenDna} style={{
+                    background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)',
+                    borderRadius: 6, color: '#10b981', fontFamily: 'ui-monospace,monospace',
+                    fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase',
+                    padding: '6px 0', cursor: 'pointer', transition: 'background 0.2s', width: '100%',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.2)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.1)'; }}
+                  >🔎 View Full DNA Report</button>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <label style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#52525b', display: 'block', marginBottom: 10 }}>Budget Level</label>
@@ -388,13 +411,119 @@ function AnimatedDelta({ value }) {
   return <span style={{ color: value >= 0 ? '#10b981' : '#ef4444' }}>{sign}{display}</span>;
 }
 
-function ExecutionStep({ placements, city, budget, planName, onComplete }) {
+function DnaRevealScreen({ city, cityDna, onFinish }) {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const sequence = [
+      { t: 0, s: 0 },
+      { t: 600, s: 1 }, 
+      { t: 1500, s: 2 },
+      { t: 2500, s: 3 },
+      { t: 4000, s: 4 },
+      { t: 5500, s: 5 },
+    ];
+    let to = [];
+    sequence.forEach(({t, s}) => to.push(setTimeout(() => setStep(s), t)));
+    return () => to.forEach(clearTimeout);
+  }, []);
+
+  useEffect(() => {
+    if (step === 5) onFinish();
+  }, [step, onFinish]);
+
+  const renderBar = (label, val, delay) => {
+    if (val === undefined || val === null) val = 50;
+    const bars = Math.round(val / 10);
+    const filled = '█'.repeat(bars);
+    const empty = '░'.repeat(10 - bars);
+    return (
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'ui-monospace,monospace', fontSize: 13, color: '#e4e4e7', animation: `mpFadeIn 0.3s ${delay}s both` }}>
+        <span style={{ color: '#a1a1aa', width: 180 }}>{label}</span>
+        <span style={{ color: '#6366f1', flex: 1 }}>[{filled}<span style={{color: '#3f3f46'}}>{empty}</span>]</span>
+        <span style={{ width: 40, textAlign: 'right' }}>{val}/100</span>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ maxWidth: 640, margin: '0 auto', padding: '48px 24px', fontFamily: 'ui-monospace,monospace', position: 'relative' }}>
+      <button onClick={onFinish} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#e4e4e7', padding: '6px 12px', cursor: 'pointer', borderRadius: 4, fontSize: 10, letterSpacing: '0.1em' }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+      >SKIP &gt;&gt;</button>
+      
+      <div style={{ color: '#6366f1', letterSpacing: '0.1em', marginBottom: 24 }}>INITIALIZING URBAN INTELLIGENCE ENGINE</div>
+      
+      {step >= 1 && (
+        <div style={{ marginBottom: 32 }}>
+           <div style={{ color: '#e4e4e7' }}>Scanning city profile: {city}</div>
+           <div style={{ color: '#3f3f46', marginTop: 4 }}>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+        </div>
+      )}
+
+      {step >= 2 && (
+        <div style={{ marginBottom: 32 }}>
+           <div style={{ color: '#10b981', marginBottom: 12 }}>CITY DNA REPORT</div>
+           <div style={{ color: '#3f3f46', marginBottom: 16 }}>───────────────────────────────────────</div>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+             {renderBar('TRANSIT BASELINE', cityDna.existingTransitQuality, 0)}
+             {renderBar('LIVEABILITY INDEX', cityDna.characterScores?.liveability, 0.2)}
+             {renderBar('GOVERNANCE SCORE', cityDna.characterScores?.governance, 0.4)}
+             {renderBar('RESILIENCE RATING', cityDna.characterScores?.resilience, 0.6)}
+           </div>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 24 }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', animation: 'mpFadeIn 0.3s 0.8s both' }}>
+               <span style={{ color: '#a1a1aa' }}>DENSITY CLASSIFICATION</span>
+               <span style={{ color: '#e4e4e7', textTransform: 'uppercase' }}>{cityDna.densityCategory}</span>
+             </div>
+             <div style={{ display: 'flex', justifyContent: 'space-between', animation: 'mpFadeIn 0.3s 0.9s both' }}>
+               <span style={{ color: '#a1a1aa' }}>ECONOMIC PROFILE</span>
+               <span style={{ color: '#e4e4e7', textTransform: 'uppercase' }}>{cityDna.economicProfile}</span>
+             </div>
+             <div style={{ display: 'flex', justifyContent: 'space-between', animation: 'mpFadeIn 0.3s 1.0s both' }}>
+               <span style={{ color: '#a1a1aa' }}>GEOGRAPHIC RISK</span>
+               <span style={{ color: '#ef4444', textTransform: 'uppercase' }}>{cityDna.geographicRisk}</span>
+             </div>
+           </div>
+        </div>
+      )}
+
+      {step >= 3 && (
+        <div style={{ marginBottom: 32, animation: 'mpFadeIn 0.4s ease' }}>
+          <div style={{ color: '#ef4444', marginBottom: 8 }}>POLITICAL SENSITIVITY FLAGS</div>
+          {cityDna.politicalResistance?.map((p, i) => (
+             <div key={i} style={{ color: '#fca5a5', fontSize: 13, marginBottom: 4 }}>  ⚠  {p} — HIGH RESISTANCE</div>
+          ))}
+        </div>
+      )}
+
+      {step >= 4 && (
+        <div style={{ animation: 'mpFadeIn 0.4s ease' }}>
+          <div style={{ color: '#8b5cf6', marginBottom: 8 }}>RECOMMENDED POLICY SEQUENCE</div>
+          {cityDna.quickWins?.map((p, i) => (
+             <div key={i} style={{ color: '#c4b5fd', fontSize: 13, marginBottom: 4 }}>  ✓  {p} yields outsized returns</div>
+          ))}
+          <div style={{ color: '#a1a1aa', marginTop: 16, lineHeight: 1.5, fontStyle: 'italic' }}>"{cityDna.cityVerdict}"</div>
+          
+          <div style={{ color: '#10b981', marginTop: 32 }}>DNA PROFILE LOCKED  ✓</div>
+          <div style={{ color: '#3f3f46', marginTop: 4 }}>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+          <div style={{ color: '#a1a1aa', marginTop: 12, animation: 'mpBlink 1s infinite' }}>Injecting city context into simulation engine...</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExecutionStep({ placements, city, budget, planName, cityDna, onComplete }) {
+  const [showDna, setShowDna] = useState(!!cityDna);
   const [stage, setStage] = useState('fetching'); // fetching -> baseline -> phase -> done
   const [phaseIdx, setPhaseIdx] = useState(-1);
   const [phaseDone, setPhaseDone] = useState([]);
   const [progress, setProgress] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [data, setData] = useState(null);
+
 
   // Elapsed time counter
   useEffect(() => {
@@ -458,6 +587,11 @@ function ExecutionStep({ placements, city, budget, planName, onComplete }) {
     icon: POLICY_PALETTE.find(x => x.key === p.policy)?.icon,
     color: POLICY_PALETTE.find(x => x.key === p.policy)?.color || '#52525b'
   }));
+
+  // If showing DNA, intercept rendering but allow effects to run in background
+  if (showDna) {
+    return <DnaRevealScreen city={city} cityDna={cityDna} onFinish={() => setShowDna(false)} />;
+  }
 
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: '48px 24px', position: 'relative' }}>
@@ -544,6 +678,7 @@ function ExecutionStep({ placements, city, budget, planName, onComplete }) {
                       letterSpacing: '0.08em',
                     }}>
                       Phase {idx + 1}: {phase.label} ({phase.year})
+                      {isDone && <span style={{color: '#71717a', fontSize: 9, marginLeft: 8}}>({city} context applied)</span>}
                     </span>
                     {isRunning && (
                       <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 9, color: phase.color }}>{progress}%</span>
@@ -956,7 +1091,9 @@ const CUSTOM_BAR_TOOLTIP = ({ active, payload, label }) => {
   );
 };
 
-function ResultsDashboard({ planName, city, data, onReport }) {
+function ResultsDashboard({ planName, city, data, cityDna, onReport, onOpenDna }) {
+  const [isDnaExpanded, setIsDnaExpanded] = useState(false);
+
   return (
     <div style={{ padding: '28px 28px 60px', display: 'flex', flexDirection: 'column', gap: 28, overflowY: 'auto', height: '100%' }}>
       <style>{`
@@ -987,6 +1124,47 @@ function ResultsDashboard({ planName, city, data, onReport }) {
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)'; }}
           >📋 Generate Report</button>
         </div>
+      </div>
+
+      {/* City Context Bar - Always Rendered */}
+      <div style={{ background: '#0f1117', border: `1px solid ${cityDna ? 'rgba(255,255,255,0.07)' : 'rgba(239,68,68,0.2)'}`, borderRadius: 14, overflow: 'hidden', animation: 'mpFadeIn 0.5s 0.05s ease both', opacity: cityDna ? 1 : 0.6 }}>
+        <div style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between' }}>
+           <div style={{ flex: '1 1 300px' }}>
+              <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: cityDna ? '#52525b' : '#ef4444', marginBottom: 6 }}>
+                {cityDna ? 'Intelligence Subroutine' : 'Intelligence Engine Offline / Missing'}
+              </div>
+              <div style={{ color: '#e4e4e7', fontSize: 13, lineHeight: 1.5, position: 'relative', paddingLeft: 10 }}>
+                <span style={{ position: 'absolute', left: -2, top: -2, color: cityDna ? '#6366f1' : '#ef4444', fontFamily: 'Georgia,serif', fontSize: 28, lineHeight: 1, pointerEvents: 'none', opacity: 0.8 }}>“</span>
+                <span style={{ fontStyle: 'italic' }}>{cityDna?.cityVerdict || 'The engine failed to retrieve or cache the macro-profile for this city. Local simulation ran on generic default values.'}</span>
+              </div>
+           </div>
+           
+           <div style={{ display: 'flex', gap: 24, opacity: cityDna ? 1 : 0.3 }}>
+             <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#10b981', fontSize: 18, fontFamily: 'ui-monospace,monospace' }}>{cityDna?.characterScores?.liveability ?? '--'}</div>
+                <div style={{ color: '#52525b', fontSize: 7, fontFamily: 'ui-monospace,monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Liveability</div>
+             </div>
+             <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#6366f1', fontSize: 18, fontFamily: 'ui-monospace,monospace' }}>{cityDna?.characterScores?.infrastructure ?? '--'}</div>
+                <div style={{ color: '#52525b', fontSize: 7, fontFamily: 'ui-monospace,monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Infra</div>
+             </div>
+             <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#f59e0b', fontSize: 18, fontFamily: 'ui-monospace,monospace' }}>{cityDna?.characterScores?.governance ?? '--'}</div>
+                <div style={{ color: '#52525b', fontSize: 7, fontFamily: 'ui-monospace,monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Gov't</div>
+             </div>
+             <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#ef4444', fontSize: 18, fontFamily: 'ui-monospace,monospace' }}>{cityDna?.characterScores?.resilience ?? '--'}</div>
+                <div style={{ color: '#52525b', fontSize: 7, fontFamily: 'ui-monospace,monospace', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Resilience</div>
+             </div>
+           </div>
+        </div>
+        
+        <button onClick={onOpenDna} disabled={!cityDna} style={{ width: '100%', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: 'none', borderLeft: 'none', borderRight: 'none', color: '#a1a1aa', padding: '10px', cursor: cityDna ? 'pointer' : 'not-allowed', fontSize: 9, fontFamily: 'ui-monospace,monospace', letterSpacing: '0.2em', transition: 'all 0.2s', display: 'block', opacity: cityDna ? 1 : 0.5 }}
+          onMouseEnter={e => { if(cityDna){ e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#fff'; } }}
+          onMouseLeave={e => { if(cityDna){ e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.color = '#a1a1aa'; } }}
+        >
+           {cityDna ? 'ACCESS FULL INTEL DOSSIER →' : 'DNA DATA UNAVAILABLE'}
+        </button>
       </div>
 
       {/* ① City Trajectory Graph */}
@@ -1239,7 +1417,7 @@ function ReportModal({ planName, city, data, onClose }) {
 ───────────────────────────────────────────────────────────────────────── */
 const STEPS = ['Setup', 'Canvas', 'Execute', 'Results'];
 
-export default function MasterPlanMode({ onClose }) {
+export default function MasterPlanMode({ onClose, onOpenDna }) {
   const [step, setStep]           = useState(0);
   const [planName, setPlanName]   = useState('Mumbai 2036 Transformation Plan');
   const [city, setCity]           = useState('Mumbai');
@@ -1248,12 +1426,31 @@ export default function MasterPlanMode({ onClose }) {
   const [showReport, setShowReport] = useState(false);
   const [simulationData, setSimulationData] = useState(null);
 
+  // New DNA state
+  const [cityDna, setCityDna] = useState(null);
+  const [isFetchingDna, setIsFetchingDna] = useState(false);
+
   // Close on Escape
   useEffect(() => {
     const h = e => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [onClose]);
+
+  // Debounced DNA Fetch
+  useEffect(() => {
+    if (!city || city.trim().length === 0) return;
+    setIsFetchingDna(true);
+    setCityDna(null);
+    const delayDebounceFn = setTimeout(() => {
+      const API_URL = import.meta.env.VITE_MASTERPLAN_API_URL || 'https://urbanpulse-backend-2.onrender.com';
+      fetch(`${API_URL}/api/masterplan/city-profile/${encodeURIComponent(city.trim())}`)
+        .then(res => res.json())
+        .then(data => { setCityDna(data); setIsFetchingDna(false); })
+        .catch(err => { console.error("Failed to fetch City DNA:", err); setIsFetchingDna(false); });
+    }, 500);
+    return () => clearTimeout(delayDebounceFn);
+  }, [city]);
 
   return (
     <div style={{
@@ -1326,7 +1523,7 @@ export default function MasterPlanMode({ onClose }) {
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
         {step === 0 && (
           <div style={{ height: '100%', overflowY: 'auto', animation: 'mpFadeIn 0.35s ease' }}>
-            <PlanSetupStep planName={planName} setPlanName={setPlanName} city={city} setCity={setCity} budget={budget} setBudget={setBudget} onNext={() => setStep(1)} />
+            <PlanSetupStep planName={planName} setPlanName={setPlanName} city={city} setCity={setCity} budget={budget} setBudget={setBudget} cityDna={cityDna} isFetchingDna={isFetchingDna} onNext={() => setStep(1)} onOpenDna={onOpenDna} />
           </div>
         )}
         {step === 1 && (
@@ -1336,12 +1533,12 @@ export default function MasterPlanMode({ onClose }) {
         )}
         {step === 2 && (
           <div style={{ height: '100%', overflowY: 'auto', animation: 'mpFadeIn 0.35s ease' }}>
-            <ExecutionStep placements={placements} city={city} budget={budget} planName={planName} onComplete={(data) => { setSimulationData(data); setStep(3); }} />
+            <ExecutionStep placements={placements} city={city} budget={budget} planName={planName} cityDna={cityDna} onComplete={(data) => { setSimulationData(data); setStep(3); }} />
           </div>
         )}
         {step === 3 && simulationData && (
           <div style={{ height: '100%', animation: 'mpFadeIn 0.35s ease' }}>
-            <ResultsDashboard planName={planName} city={city} data={simulationData} onReport={() => setShowReport(true)} />
+            <ResultsDashboard planName={planName} city={city} data={simulationData} cityDna={cityDna} onReport={() => setShowReport(true)} onOpenDna={onOpenDna} />
           </div>
         )}
       </div>

@@ -418,7 +418,7 @@ function Step({ num, title, body }) {
 }
 
 /* ─── Main landing page ──────────────────────────────────────────────────── */
-export default function LandingPage({ onLaunch }) {
+export default function LandingPage({ onLaunch, onOpenDna }) {
   const [loading, setLoading] = useState(true);
   const { isMobile, isTablet } = useBreakpoint();
 
@@ -526,6 +526,20 @@ export default function LandingPage({ onLaunch }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 28 }}>
           <span className="status-badge"><StatusBadge /></span>
+          
+          {onOpenDna && (
+            <button onClick={onOpenDna} style={{
+              fontFamily: 'ui-monospace,monospace', fontSize: 10, letterSpacing: '0.2em',
+              textTransform: 'uppercase', color: '#a78bfa',
+              background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)',
+              padding: isMobile ? '8px 14px' : '10px 22px', borderRadius: 8, cursor: 'pointer', transition: 'all 0.3s',
+              whiteSpace: 'nowrap',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.06)'; e.currentTarget.style.color = '#a78bfa'; }}
+            >DNA Archive</button>
+          )}
+
           <button onClick={onLaunch} style={{
             fontFamily: 'ui-monospace,monospace', fontSize: 10, letterSpacing: '0.2em',
             textTransform: 'uppercase', color: '#94a3b8',
