@@ -40,10 +40,7 @@ export function ImpactCard({ title, value, prevValue, compact = false, index = 0
   const delta     = prevValue != null ? value - prevValue : null;
 
   return (
-    <div style={{
-      background: 'linear-gradient(135deg, #0f1117 0%, #0a0a0b 100%)',
-      border: `1px solid rgba(255,255,255,0.06)`,
-      borderRadius: compact ? 10 : 14,
+    <div className="glass-card" style={{
       padding: compact ? '12px 14px' : '20px 22px',
       position: 'relative', overflow: 'hidden',
       /* staggered slide-up */
@@ -263,9 +260,8 @@ export function AnimatedTimeline({ evolution }) {
     : '0%';
 
   return (
-    <div style={{
-      padding: '28px', background: '#050505',
-      border: '1px solid #1c1c20', borderRadius: 14,
+    <div className="glass-card" style={{
+      padding: '28px',
       marginBottom: 32, position: 'relative', overflow: 'hidden',
     }}>
       <style>{`
@@ -392,13 +388,10 @@ export function TypewriterSummary({ text, label = 'AI Trade-off Analysis', accen
   }, [text]);
 
   return (
-    <div style={{
+    <div className="glass-card" style={{
       marginBottom: 24,
-      background: '#18181b',
-      border: `1px solid ${accent}44`,
-      borderRadius: 14, padding: 20,
+      padding: 20,
       position: 'relative', overflow: 'hidden',
-      boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
     }}>
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0,
@@ -544,10 +537,8 @@ export function ProfessionalLoader() {
       </div>
 
       {/* Status text */}
-      <div style={{
+      <div className="glass-card" style={{
         marginTop: 24,
-        background: 'rgba(19,19,22,0.8)', backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(99,102,241,0.3)', borderRadius: 12,
         padding: '14px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -591,11 +582,10 @@ const ROLE_CONFIG = {
 export function StakeholderCard({ role, message, compact = false }) {
   const cfg = ROLE_CONFIG[role] || { colour: '#818cf8', icon: '🗣️' };
   return (
-    <div style={{
-      background: '#0f1117',
-      border: `1px solid ${cfg.colour}22`,
-      borderRadius: 12, padding: compact ? '12px 14px' : '16px 18px',
+    <div className="glass-card" style={{
+      padding: compact ? '12px 14px' : '16px 18px',
       position: 'relative', overflow: 'hidden',
+      borderColor: `${cfg.colour}44`
     }}>
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0,

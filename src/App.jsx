@@ -185,7 +185,7 @@ function UrbanPulseDashboard() {
   const executeExportJSON = () => {
     if (!result) return;
     const exportData = {
-      matrix_signature: `URBANPULSE_SYSTEM_EXPORT_${Date.now()}`,
+      matrix_signature: `CITYSIMULATION_SYSTEM_EXPORT_${Date.now()}`,
       timestamp: new Date().toISOString(),
       configuration: { city, population, timeHorizon, budget, priority, riskLevel, policyA: policy, policyB: isCompareMode ? policyB : null },
       metrics: isCompareMode ? null : result.impact,
@@ -197,7 +197,7 @@ function UrbanPulseDashboard() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `UP_Analysis_${city.replace(/\s+/g, '_')}_${Date.now()}.json`;
+    a.download = `CS_Analysis_${city.replace(/\s+/g, '_')}_${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -265,26 +265,12 @@ function UrbanPulseDashboard() {
 
   return (
     <>
-      <style>{`
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #2A2A30; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #3b4a6b; }
-        @keyframes scan {
-          0% { transform: translateY(-100vh); }
-          100% { transform: translateY(100vh); }
-        }
-        @keyframes fade-in-up {
-          0% { opacity: 0; transform: translateY(30px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes tabSlideUp {
-          from { opacity:0; transform:translateY(12px); }
-          to   { opacity:1; transform:translateY(0); }
-        }
-      `}</style>
-      
-      <div className="min-h-screen lg:h-screen w-full bg-[#0A0A0B] text-[#E4E4E7] font-sans selection:bg-[#3b4a6b]/30 p-4 lg:p-6 flex flex-col lg:flex-row gap-6 overflow-y-auto lg:overflow-hidden animate-fade-in pb-20 lg:pb-6">
+      <div className="min-h-screen lg:h-screen w-full bg-slate-900 text-slate-50 font-inter p-4 lg:p-6 flex flex-col lg:flex-row gap-6 overflow-y-auto lg:overflow-hidden relative pb-20 lg:pb-6">
+        {/* Background Mesh Gradient */}
+        <div className="fixed inset-0 pointer-events-none z-0 opacity-20">
+          <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-emerald-600/20 blur-[120px]"></div>
+          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-cyan-600/20 blur-[120px]"></div>
+        </div>
         
         {/* ════ PANEL 1: SIMULATION WIZARD ════ */}
         <div className={activeTab === 'config' ? 'contents lg:contents' : 'hidden lg:contents'}>
@@ -315,7 +301,7 @@ function UrbanPulseDashboard() {
         </div>
 
         {/* ════ PANEL 2: MACRO ANALYTICS ════ */}
-        <section className={`impact-section flex-1 bg-[#131316] border border-[#222226] rounded-xl flex flex-col lg:h-full lg:overflow-y-auto shadow-2xl ${
+        <section className={`impact-section flex-1 glass-panel flex flex-col lg:h-full lg:overflow-y-auto z-10 ${
           activeTab === 'analytics' ? 'flex' : 'hidden'
         } lg:flex`}>
           <div className="p-8 lg:p-12 h-full flex flex-col">
@@ -401,7 +387,7 @@ function UrbanPulseDashboard() {
                 </div>
 
                 {/* Radar — draw from centre + rotating ring + pulsing score */}
-                <div className="mb-4 px-4 bg-[#0A0A0B] py-6 rounded-xl border border-[#1C1C20] shadow-inner">
+                <div className="mb-4 px-4 glass-card py-6 rounded-xl shadow-inner">
                    <ArchitecturalRadar data={[
                      { label: 'TRAFFIC',   value: result.impact.traffic },
                      { label: 'ECONOMY',   value: result.impact.economy },
@@ -417,8 +403,8 @@ function UrbanPulseDashboard() {
                   
                   {/* Recommended Decision Block */}
                   {result.recommendationSummary && (
-                     <div className="mb-8 bg-gradient-to-r from-[#18181B] to-[#121214] border border-[#10b981]/30 p-6 rounded-xl animate-fade-in-up relative overflow-hidden shadow-xl">
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#10b981]"></div>
+                     <div className="mb-8 glass-card border border-emerald-500/30 p-6 rounded-xl animate-fade-in-up relative overflow-hidden shadow-xl">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
                         <div className="flex items-center gap-3 mb-3">
                            <span className="text-xl">🏆</span>
                            <h4 className="font-mono text-[11px] tracking-widest text-[#10b981] uppercase font-semibold">AI Recommended Decision</h4>
@@ -427,7 +413,7 @@ function UrbanPulseDashboard() {
                      </div>
                   )}
 
-                  <div className="mb-10 px-4 bg-[#0A0A0B] py-6 rounded-xl border border-[#1C1C20] shadow-inner">
+                  <div className="mb-10 px-4 glass-card py-6 rounded-xl shadow-inner">
                      <div className="flex justify-center gap-8 mb-4 font-mono text-[10px] tracking-widest uppercase">
                         <span className="flex items-center gap-2"><div className="w-2 h-2 bg-[#3b4a6b]"></div> Variant A</span>
                         <span className="flex items-center gap-2"><div className="w-2 h-2 bg-[#52525B]"></div> Variant B</span>
@@ -469,7 +455,7 @@ function UrbanPulseDashboard() {
         </section>
 
         {/* ════ PANEL 3: MICRO FEEDBACK ════ */}
-        <section className={`w-full lg:w-[420px] shrink-0 bg-[#131316] border border-[#222226] rounded-xl flex flex-col lg:h-full overflow-hidden shadow-2xl ${
+        <section className={`w-full lg:w-[420px] shrink-0 glass-panel flex flex-col lg:h-full overflow-hidden z-10 ${
           activeTab === 'stakeholders' ? 'flex' : 'hidden'
         } lg:flex`}>
           <div className="p-8 flex flex-col min-h-0 h-full">
@@ -604,8 +590,8 @@ function UrbanPulseDashboard() {
 
       {/* 5. Save & Share Viral Modal Overlay */}
       {showSaveModal && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in text-[#E4E4E7]">
-            <div className="bg-[#131316] border border-[#222226] p-8 rounded-2xl w-full max-w-lg shadow-[0_0_50px_rgba(59,74,107,0.3)] relative">
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 animate-fade-in text-slate-100">
+            <div className="glass-panel p-8 rounded-2xl w-full max-w-lg shadow-[0_0_50px_rgba(16,185,129,0.3)] relative">
                <button onClick={() => setShowSaveModal(false)} className="absolute top-4 right-5 text-2xl text-[#71717A] hover:text-white transition-colors">&times;</button>
                <h3 className="font-mono text-[10px] tracking-widest text-[#8A8A93] uppercase mb-4 text-center">Protocol Achieved</h3>
                <div className="text-center mb-6">
@@ -628,7 +614,7 @@ function UrbanPulseDashboard() {
                </div>
                
                <div className="bg-[#0A0A0B] p-5 rounded-lg border border-[#2A2A30] mb-6 font-mono text-[11px] text-[#A1A1AA] leading-relaxed relative hover:border-[#3b4a6b] transition-colors cursor-text selection:bg-[#3b4a6b]/30 break-words whitespace-pre-wrap">
-{`ðŸŒ UrbanPulse Scenario: [${savedScenarioId}]
+{`ðŸŒ CitySimulation Scenario: [${savedScenarioId}]
 ðŸ™ï¸ City: ${city}
 ðŸ“œ Policy: ${isCompareMode ? 'Variant Comparison' : (POLICY_LABELS[policy] || policy)}
 ðŸ“Š Health Score: ${result ? (isCompareMode ? 'N/A' : Math.round((result.impact?.traffic + result.impact?.economy + result.impact?.environment + result.impact?.sentiment) / 4)) : 0}/100
@@ -639,13 +625,13 @@ Outcome:
 ðŸŒ± Ecology: ${isCompareMode ? 'Computed' : result?.impact?.environment}/100
 ðŸ˜Š Sentiment: ${isCompareMode ? 'Computed' : result?.impact?.sentiment}/100
 
-ðŸ§  Run your own simulation map at UrbanPulse.ai!`}
+ðŸ§  Run your own simulation map at CitySimulation.ai!`}
                </div>
 
                <button 
                   onClick={() => {
                      const isComp = isCompareMode; 
-                     const text = `ðŸŒ UrbanPulse Scenario: [${savedScenarioId}]\nðŸ™ï¸ City: ${city}\nðŸ“œ Policy: ${isComp ? 'Variant Comparison' : (POLICY_LABELS[policy] || policy)}\nðŸ“Š Health Score: ${result ? (isComp ? 'N/A' : Math.round((result.impact?.traffic + result.impact?.economy + result.impact?.environment + result.impact?.sentiment) / 4)) : 0}/100\n\nOutcome:\nðŸš— Traffic: ${isComp ? 'Computed' : result?.impact?.traffic}/100\nðŸ’° Economy: ${isComp ? 'Computed' : result?.impact?.economy}/100\nðŸŒ± Ecology: ${isComp ? 'Computed' : result?.impact?.environment}/100\nðŸ˜Š Sentiment: ${isComp ? 'Computed' : result?.impact?.sentiment}/100\n\nðŸ§  Run your own simulation map at UrbanPulse.ai!`;
+                     const text = `ðŸŒ CitySimulation Scenario: [${savedScenarioId}]\nðŸ™ï¸ City: ${city}\nðŸ“œ Policy: ${isComp ? 'Variant Comparison' : (POLICY_LABELS[policy] || policy)}\nðŸ“Š Health Score: ${result ? (isComp ? 'N/A' : Math.round((result.impact?.traffic + result.impact?.economy + result.impact?.environment + result.impact?.sentiment) / 4)) : 0}/100\n\nOutcome:\nðŸš— Traffic: ${isComp ? 'Computed' : result?.impact?.traffic}/100\nðŸ’° Economy: ${isComp ? 'Computed' : result?.impact?.economy}/100\nðŸŒ± Ecology: ${isComp ? 'Computed' : result?.impact?.environment}/100\nðŸ˜Š Sentiment: ${isComp ? 'Computed' : result?.impact?.sentiment}/100\n\nðŸ§  Run your own simulation map at CitySimulation.ai!`;
                      navigator.clipboard.writeText(text);
                      setCopiedFull(true);
                      setTimeout(() => setCopiedFull(false), 2000);
