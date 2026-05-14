@@ -20,7 +20,7 @@ export default function CityDnaDatabase({ initialCity = null, onClose }) {
   const fetchProfiles = async () => {
     setLoading(true);
     try {
-      const API_URL = import.meta.env.VITE_MASTERPLAN_API_URL || 'https://urbanpulse-backend-2.onrender.com';
+      const API_URL = import.meta.env.VITE_MASTERPLAN_API_URL || 'https://citysim-backend-production.up.railway.app';
       const res = await fetch(`${API_URL}/api/masterplan/city-profile/all`);
       if(res.ok) {
         const data = await res.json();

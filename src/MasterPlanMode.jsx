@@ -540,7 +540,7 @@ function ExecutionStep({ placements, city, budget, planName, cityDna, onComplete
         return { year: String(p.year), policy: p.policy, label: pol.label, icon: pol.icon };
       })
     };
-    const API_URL = import.meta.env.VITE_MASTERPLAN_API_URL || 'https://urbanpulse-backend-2.onrender.com';
+    const API_URL = import.meta.env.VITE_MASTERPLAN_API_URL || 'https://citysim-backend-production.up.railway.app';
     fetch(`${API_URL}/api/masterplan/simulate`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1443,7 +1443,7 @@ export default function MasterPlanMode({ onClose, onOpenDna }) {
     setIsFetchingDna(true);
     setCityDna(null);
     const delayDebounceFn = setTimeout(() => {
-      const API_URL = import.meta.env.VITE_MASTERPLAN_API_URL || 'https://urbanpulse-backend-2.onrender.com';
+      const API_URL = import.meta.env.VITE_MASTERPLAN_API_URL || 'https://citysim-backend-production.up.railway.app';
       fetch(`${API_URL}/api/masterplan/city-profile/${encodeURIComponent(city.trim())}`)
         .then(res => res.json())
         .then(data => { setCityDna(data); setIsFetchingDna(false); })

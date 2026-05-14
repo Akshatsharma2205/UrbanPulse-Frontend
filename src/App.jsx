@@ -22,7 +22,7 @@ const POLICY_LABELS = {
   "custom": "Custom Policy"
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://urbanpulse-backend-production-72ce.up.railway.app';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://citysim-backend-production.up.railway.app';
 
 export default function App() {
   return <UrbanPulseDashboard />;
